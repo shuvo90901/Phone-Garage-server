@@ -20,6 +20,7 @@ async function run() {
     try {
         const usersCollection = client.db('phoneGarage').collection('users');
         const productsCollection = client.db('phoneGarage').collection('products');
+        const categoriesCollection = client.db('phoneGarage').collection('categories');
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -34,15 +35,50 @@ async function run() {
         });
 
         app.get('/seller', async (req, res) => {
+            const email = req.query.email;
             const query = { role: 'seller' };
-            const users = await usersCollection.find(query).toArray();
-            res.send(users)
+            const sellers = await usersCollection.find(query).toArray();
+            res.send(sellers)
+        });
+
+        app.get('/seller/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const sellers = await usersCollection.findOne(query);
+            res.send(sellers)
+        });
+
+
+        app.put('/seller/verify/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const optoins = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    status: 'verified'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updatedDoc, optoins);
+            res.send(result)
         })
 
         app.get('/customer', async (req, res) => {
             const query = { role: 'customer' };
-            const users = await usersCollection.find(query).toArray();
-            res.send(users)
+            const customers = await usersCollection.find(query).toArray();
+            res.send(customers)
+        })
+
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result)
+        })
+
+        app.get('/categories', async (req, res) => {
+            const query = {};
+            const categories = await categoriesCollection.find(query).toArray();
+            res.send(categories)
         })
 
         app.post('/products', async (req, res) => {
