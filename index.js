@@ -21,6 +21,7 @@ async function run() {
         const usersCollection = client.db('phoneGarage').collection('users');
         const productsCollection = client.db('phoneGarage').collection('products');
         const categoriesCollection = client.db('phoneGarage').collection('categories');
+        const bookingsCollection = client.db('phoneGarage').collection('bookings');
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -84,7 +85,7 @@ async function run() {
         app.post('/products', async (req, res) => {
             const product = req.body;
             const result = await productsCollection.insertOne(product);
-            res.send(product);
+            res.send(result);
         })
 
         app.get('/products', async (req, res) => {
@@ -100,6 +101,17 @@ async function run() {
             res.send(result)
         })
 
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            const result = await bookingsCollection.insertOne(booking)
+            res.send(result)
+        })
+
+        app.get('/bookings', async (req, res) => {
+            const query = {};
+            const result = await bookingsCollection.find(query).toArray();
+            res.send(result)
+        })
 
     }
     finally {
