@@ -22,6 +22,23 @@ async function run() {
         const productsCollection = client.db('phoneGarage').collection('products');
         const categoriesCollection = client.db('phoneGarage').collection('categories');
         const bookingsCollection = client.db('phoneGarage').collection('bookings');
+        const paymentsCollection = client.db('phoneGarage').collection('payments');
+        const advertisesCollection = client.db('phoneGarage').collection('advertises');
+        const reportedCollection = client.db('phoneGarage').collection('reported');
+
+
+        const verifyAdmin = async (req, res, next) => {
+            const decodedEmail = req.decoded.email;
+            const query = { email: decodedEmail };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            next();
+        }
+
+
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -35,7 +52,7 @@ async function run() {
             res.send(users)
         });
 
-        app.get('/seller', async (req, res) => {
+        app.get('/seller', verifyAdmin, async (req, res) => {
             const email = req.query.email;
             const query = { role: 'seller' };
             const sellers = await usersCollection.find(query).toArray();
@@ -49,8 +66,24 @@ async function run() {
             res.send(sellers)
         });
 
+        app.get('users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.role === 'admin' })
+        });
 
-        app.put('/seller/verify/:id', async (req, res) => {
+        app.get('users/seller/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isSeller: user?.role === 'seller' })
+        });
+
+
+
+
+        app.put('/seller/verify/:id', verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const optoins = { upsert: true }
@@ -69,7 +102,7 @@ async function run() {
             res.send(customers)
         })
 
-        app.delete('/users/:id', async (req, res) => {
+        app.delete('/users/:id', verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(filter);
@@ -110,6 +143,68 @@ async function run() {
         app.get('/bookings', async (req, res) => {
             const query = {};
             const result = await bookingsCollection.find(query).toArray();
+            res.send(result)
+        })
+
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { modal_id: id };
+            const result = await bookingsCollection.findOne(query);
+            res.send(result)
+        })
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                "payment_method_types": [
+                    "card"
+                ]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const id = payment.bookingId;
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+            res.send(result);
+        })
+
+        app.post('/advertises', async (req, res) => {
+            const product = req.body;
+            const result = await advertisesCollection.insertOne(product);
+            res.send(result)
+        })
+
+        app.get('/advertises', async (req, res) => {
+            const query = {};
+            const result = await advertisesCollection.find(query).toArray();
+            res.send(result)
+        })
+
+        app.post('/reported', async (req, res) => {
+            const report = req.body;
+            const result = await reportedCollection.insertOne(report);
+            res.send(result);
+        })
+
+        app.get('/reported', async (req, res) => {
+            const query = {};
+            const result = await reportedCollection.find(query).toArray();
             res.send(result)
         })
 
