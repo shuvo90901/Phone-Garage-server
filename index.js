@@ -3,7 +3,7 @@ const cors = require('cors');
 const port = process.env.PORT || 5000;
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
 const app = express();
 
@@ -33,6 +33,16 @@ async function run() {
             const user = await usersCollection.findOne(query);
 
             if (user?.role !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            next();
+        }
+        const verifySeller = async (req, res, next) => {
+            const decodedEmail = req.decoded.email;
+            const query = { email: decodedEmail };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.role !== 'seller') {
                 return res.status(403).send({ message: 'forbidden access' })
             }
             next();
@@ -140,8 +150,9 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/bookings', async (req, res) => {
-            const query = {};
+        app.get('/bookings/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email };
             const result = await bookingsCollection.find(query).toArray();
             res.send(result)
         })
