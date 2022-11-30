@@ -62,7 +62,7 @@ async function run() {
             res.send(users)
         });
 
-        app.get('/seller', verifyAdmin, async (req, res) => {
+        app.get('/seller', async (req, res) => {
             const email = req.query.email;
             const query = { role: 'seller' };
             const sellers = await usersCollection.find(query).toArray();
@@ -93,7 +93,7 @@ async function run() {
 
 
 
-        app.put('/seller/verify/:id', verifyAdmin, async (req, res) => {
+        app.put('/seller/verify/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const optoins = { upsert: true }
@@ -112,7 +112,7 @@ async function run() {
             res.send(customers)
         })
 
-        app.delete('/users/:id', verifyAdmin, async (req, res) => {
+        app.delete('/users/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(filter);
